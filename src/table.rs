@@ -135,13 +135,13 @@ impl Game {
         // Can be played with the current first card?
         if self.is_trump(&self.first_card.unwrap()) {
             // First card is trump
-            if (self.is_trump(card) || !self.has_trump_in_hand(self.turn)) {
+            if self.is_trump(card) || !self.has_trump_in_hand(self.turn) {
                 return true;
             }
         } else {
             // First card is color
-            if (card.color == self.first_card.unwrap().color
-                || !self.has_color_in_hand(self.first_card.unwrap().color, self.turn))
+            if card.color == self.first_card.unwrap().color
+                || !self.has_color_in_hand(self.first_card.unwrap().color, self.turn)
             {
                 return true;
             }
@@ -152,7 +152,7 @@ impl Game {
     fn has_color_in_hand(&self, color: Colors, hand: u8) -> bool {
         let mut hand_cards = self.get_cards_in_location(hand);
         for card in hand_cards.drain() {
-            if (card.color == color) {
+            if card.color == color {
                 return true;
             }
         }
@@ -162,7 +162,7 @@ impl Game {
     fn has_trump_in_hand(&self, hand: u8) -> bool {
         let mut hand_cards = self.get_cards_in_location(hand);
         for card in hand_cards.drain() {
-            if (self.is_trump(&card)) {
+            if self.is_trump(&card) {
                 return true;
             }
         }
@@ -171,9 +171,9 @@ impl Game {
 
     fn is_trump(&self, card: &Card) -> bool {
         assert!(self.ruleset.is_some());
-        if (card.color == self.ruleset.unwrap().trump_color.unwrap()
+        if card.color == self.ruleset.unwrap().trump_color.unwrap()
             || card.symbol == self.ruleset.unwrap().trump_symbols[0].unwrap()
-            || card.symbol == self.ruleset.unwrap().trump_symbols[1].unwrap())
+            || card.symbol == self.ruleset.unwrap().trump_symbols[1].unwrap()
         {
             return true;
         }
@@ -198,7 +198,7 @@ impl Game {
     fn determine_game_winner(&self) -> u8 {
         let mut points: [u8; 4] = [0, 0, 0, 0];
         for card in self.deck.clone() {
-            if (card.1 <= 8 && card.1 >= 5) {
+            if card.1 <= 8 && card.1 >= 5 {
                 points[card.1 as usize] += card.0.get_value() as u8;
             }
         }
@@ -213,19 +213,19 @@ impl Game {
 
     fn card_is_higher(&self, card1: &Card, card2: &Card) -> bool {
         // Trump decides
-        if (self.is_trump(card1) != self.is_trump(card2)) {
+        if self.is_trump(card1) != self.is_trump(card2) {
             return self.is_trump(card1);
         }
         // First color decides
         if !self.is_trump(card1) {
-            if ((card1.color == self.first_card.unwrap().color)
-                != (card1.color == self.first_card.unwrap().color))
+            if (card1.color == self.first_card.unwrap().color)
+                != (card1.color == self.first_card.unwrap().color)
             {
-                return (card1.color == self.first_card.unwrap().color);
+                return card1.color == self.first_card.unwrap().color;
             }
         }
         // Higher symbol decides
-        if (card1.symbol != card2.symbol) {
+        if card1.symbol != card2.symbol {
             return card1.symbol as u8 > card2.symbol as u8;
         }
         // Higher color decides
