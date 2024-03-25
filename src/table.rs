@@ -18,11 +18,13 @@ pub struct Game {
     pub first_card: Option<Card>,
     /*
     Cards in the deck can be in the following locations:
-    0.In Play
-    1.Hand Player1  2.Hand Player2  3.Hand Player3  4.Hand Player4
-    5.Owned Player1 6.Owned Player2 7.Owned Player3 8.Owned Player4
+    0. In Play
+    1. Hand Player1  2. Hand Player2  3. Hand Player3  4. Hand Player4
+    5. Owned Player1 6.Owned Player2 7. Owned Player3 8. Owned Player4
+    Game Progress can be:
+    0. Choosing Ruleset 1. In Play 2. Done
     The vorhand (first player who comes out with a card) can be:
-    0.Player1 1.Player2 2.Player3 3.Player4
+    0. Player1 1. Player2 2. Player3 3. Player4
     */
 }
 impl Game {
