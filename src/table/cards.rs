@@ -26,14 +26,14 @@ pub struct Card {
     pub color: Colors,
 }
 impl Card {
-    pub fn get_value(self) -> i16 {
+    pub fn get_value(self) -> Result<i16, &'static str> {
         match self.symbol {
-            Symbols::Ass => return 11,
-            Symbols::Zehn => return 10,
-            Symbols::Koenig => return 4,
-            Symbols::Ober => return 3,
-            Symbols::Unter => return 2,
-            _ => return 0,
+            Symbols::Ass => return Ok(11),
+            Symbols::Zehn => return Ok(10),
+            Symbols::Koenig => return Ok(4),
+            Symbols::Ober => return Ok(3),
+            Symbols::Unter => return Ok(2),
+            _ => return Ok(0),
         }
     }
 }

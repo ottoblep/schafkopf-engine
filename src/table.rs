@@ -199,7 +199,7 @@ impl Game {
         let mut points: [u8; 4] = [0, 0, 0, 0];
         for card in self.deck.clone() {
             if card.1 <= 8 && card.1 >= 5 {
-                points[card.1 as usize] += card.0.get_value() as u8;
+                points[card.1 as usize] += card.0.get_value().unwrap() as u8;
             }
         }
         return points
