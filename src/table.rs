@@ -5,7 +5,7 @@ use crate::table::rulesets::*;
 use rand;
 use rand::seq::SliceRandom;
 use std::collections::*;
-use strum::IntoEnumIterator; // 0.17.1
+use strum::IntoEnumIterator;
 
 pub struct Game {
     deck: HashMap<Card, u8>,           // Location of the cards
@@ -14,14 +14,14 @@ pub struct Game {
     pub winner: Option<u8>,
     game_progress: u8,
     round_progress: u8,
-    pub turn: u8,
+    pub vorhand: u8,
     pub first_card: Option<Card>,
     /*
     Cards in the deck can be in the following locations:
     0.In Play
     1.Hand Player1  2.Hand Player2  3.Hand Player3  4.Hand Player4
     5.Owned Player1 6.Owned Player2 7.Owned Player3 8.Owned Player4
-    The turn can be:
+    The vorhand (first player who comes out with a card) can be:
     0.Player1 1.Player2 2.Player3 3.Player4
     */
 }
@@ -35,7 +35,7 @@ impl Game {
             winner: None,
             game_progress: 0,
             round_progress: 0,
-            turn: (dealer + 1) % 4,
+            vorhand: (dealer + 1) % 4,
             first_card: None,
         };
     }
@@ -114,7 +114,7 @@ impl Game {
         for card in cards_in_stich.drain() {
             self.deck.insert(card, winner + 5); // Move cards to winner owned
         }
-        self.turn = winner;
+        self.vorhand = winner;
         self.round_progress = 0;
         self.game_progress += 1;
     }
@@ -125,7 +125,7 @@ impl Game {
 
     fn card_is_valid(&self, card: &Card) -> bool {
         // Is in player hand whos turn it is
-        if !self.turn == self.get_card_owner(card) {
+        if !self.vorhand == self.get_card_owner(card) {
             return false;
         }
         // First card is always valid
@@ -135,13 +135,13 @@ impl Game {
         // Can be played with the current first card?
         if self.is_trump(&self.first_card.unwrap()) {
             // First card is trump
-            if self.is_trump(card) || !self.has_trump_in_hand(self.turn) {
+            if self.is_trump(card) || !self.has_trump_in_hand(self.vorhand) {
                 return true;
             }
         } else {
             // First card is color
             if card.color == self.first_card.unwrap().color
-                || !self.has_color_in_hand(self.first_card.unwrap().color, self.turn)
+                || !self.has_color_in_hand(self.first_card.unwrap().color, self.vorhand)
             {
                 return true;
             }
@@ -251,5 +251,5 @@ mod tests {
                 assert_eq!(cards_in_location, 0, "Cards assigned outside hand at location {}", location);
             }
         }
-    }
+        }
 }
