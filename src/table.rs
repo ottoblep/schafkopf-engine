@@ -232,3 +232,24 @@ impl Game {
         return card1.color as u8 > card2.color as u8;
     }
 }
+
+#[cfg(test)]
+mod tests {
+    // Note this useful idiom: importing names from outer (for mod tests) scope.
+    use super::*;
+
+    #[test]
+    fn test_new_cards() {
+        let starting_cards = Game::new_cards();
+        assert_eq!(starting_cards.len(), 32, "Too many cards in play");
+        // Count that each hand has exactly four cards and no cards elsewhere
+        for location in 0..9 {
+            let cards_in_location: usize = starting_cards.values().filter(|l| **l == location).count();
+            if location >= 1 && location <=4 {
+                assert_eq!(cards_in_location, 8, "Player {} does not have the right card amount", location);
+            } else {
+                assert_eq!(cards_in_location, 0, "Cards assigned outside hand at location {}", location);
+            }
+        }
+    }
+}
