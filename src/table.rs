@@ -50,14 +50,13 @@ impl Game {
         }
     }
 
-    pub fn play_card(&mut self, card: &Card) -> bool {
-        if self.winner != None {
-            return false;
+    pub fn play_card(&mut self, card: &Card) -> Result<bool, &'static str> {
+        if self.game_progress != 1 {
+            return Err("Attempted to play card while not in play phase");
         }
-        assert!(self.ruleset.is_some());
 
         if !Self::card_is_valid(self, card) {
-            return false;
+            return Ok(false);
         }
 
         // Assign first card
@@ -79,7 +78,7 @@ impl Game {
             self.winner = Some(self.determine_game_winner());
         }
 
-        return true;
+        return Ok(true);
     }
 
     pub fn get_cards_in_location(&self, location: u8) -> HashSet<Card> {

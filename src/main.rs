@@ -8,7 +8,7 @@ fn main() {
     loop {
         let hand_on_turn = game.get_cards_in_location(game.vorhand+1);
         for card in hand_on_turn {
-            if game.play_card(&card) { break; }
+            if game.play_card(&card).unwrap() == true { break; }
         }
     }
 }
