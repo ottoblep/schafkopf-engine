@@ -96,8 +96,6 @@ impl Game {
             if !self.has_color_in_hand(announce_sow.unwrap().color, self.round_progress) { return false; }
         }
 
-        //
-
         return true;
 
         // TODO: complete
@@ -108,7 +106,7 @@ impl Game {
             return Err("Attempted to play card while not in play phase");
         }
         
-        if !Self::card_is_valid(self, card) {
+        if Self::card_is_valid(self, card) == Ok(false) {
             return Ok(false);
         }
 
@@ -179,30 +177,32 @@ impl Game {
         }
     }
 
-    fn card_is_valid(&self, card: &Card) -> bool {
+    fn card_is_valid(&self, card: &Card) -> Result<bool, &'static str> {
+        if self.ruleset.is_none() { return Err("No ruleset has been chosen") }
         // Is in player hand whos turn it is
         if Ok(self.vorhand) != self.get_card_owner(card) {
-            return false;
+            return Ok(false);
         }
         // First card is always valid
+        // TODO: This is wrong
         if self.round_progress == 0 {
-            return true;
+            return Ok(true);
         }
         // Can be played with the current first card?
         if self.ruleset.unwrap().card_is_trump(&self.first_card.unwrap()) {
             // First card is trump
             if self.ruleset.unwrap().card_is_trump(card) || !self.has_trump_in_hand(self.vorhand) {
-                return true;
+                return Ok(true);
             }
         } else {
             // First card is color
             if card.color == self.first_card.unwrap().color
                 || !self.has_color_in_hand(self.first_card.unwrap().color, self.vorhand)
             {
-                return true;
+                return Ok(true);
             }
         }
-        return false;
+        return Ok(false);
     }
 
     fn has_color_in_hand(&self, color: Colors, hand: u8) -> bool {
