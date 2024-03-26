@@ -10,21 +10,33 @@ use strum::IntoEnumIterator;
 pub struct Game {
     deck: HashMap<Card, u8>,           // Location of the cards
     starting_hands: HashMap<Card, u8>, // Location of the cards at game start
+    // Cards in the deck can be in the following locations:
+    // 0. In Play
+    // 1. Hand Player1  2. Hand Player2  3. Hand Player3  4. Hand Player4
+    // 5. Owned Player1 6.Owned Player2 7. Owned Player3 8. Owned Player4
     pub ruleset: Option<Ruleset>,
+    // Tracks the last and highest game announced
+    teams: Option<u8>,
+    // Only two teams can exist
+    // Teams might not be known to all players at the start
+    // Bits 0..3 descibe team assignment for players 1 to 4
     pub winner: Option<u8>,
-    game_progress: u8,
-    round_progress: u8,
+    // Winner 1..4
+    pub game_progress: u8,
+    // Game Progress can be:
+    // 0. Announcement phase 1. Play Phase 2. Done
+    pub round_progress: u8,
+    // Player currently defining the next action 0..3
+    // also tracks the player currently able to announce a game during announcement phase
     pub vorhand: u8,
+    // The vorhand (first player who comes out with a card) 0..3
+    // also tracks the player that has announced the highest game during announcement phase
     pub first_card: Option<Card>,
     /*
-    Cards in the deck can be in the following locations:
-    0. In Play
-    1. Hand Player1  2. Hand Player2  3. Hand Player3  4. Hand Player4
-    5. Owned Player1 6.Owned Player2 7. Owned Player3 8. Owned Player4
-    Game Progress can be:
-    0. Choosing Ruleset 1. In Play 2. Done
-    The vorhand (first player who comes out with a card) can be:
-    0. Player1 1. Player2 2. Player3 3. Player4
+    The game progresses by calling:
+    - new() to initialize a game
+    - Players announce_game() clockwise until game_progress changes to 1 which means a ruleset is chosen
+    - Players play_card() clockwise until the winner is chosen
     */
 }
 impl Game {
@@ -34,29 +46,59 @@ impl Game {
             deck: starting_cards.clone(),
             starting_hands: starting_cards,
             ruleset: None,
+            teams: None,
             winner: None,
             game_progress: 0,
-            round_progress: 0,
+            round_progress: (dealer + 1) % 4,
             vorhand: (dealer + 1) % 4,
             first_card: None,
         };
     }
 
-    pub fn set_ruleset(&mut self, ruleset: Ruleset) -> bool {
-        // Must be done before playing cards
-        if self.ruleset.is_none() {
-            self.ruleset = Some(ruleset);
-            return true;
-        } else {
-            return false;
+    pub fn announce_game(&mut self, announce_ruleset: Option<Ruleset>) -> Result<bool, &'static str> {
+        if self.game_progress != 0 {
+            return Err("Attempted to announce a game while not in choosing ruleset phase");
         }
+
+        if !self.announcement_is_valid(announce_ruleset) {
+            self.vorhand = self.round_progress; // Set the new announcer 
+            self.ruleset = announce_ruleset;
+        } else {
+            return Ok(false)
+        }
+
+        self.round_progress = self.round_progress + 1 % 4;
+
+        // If one round is completed without a new announcement move to next phase
+        if self.round_progress == self.vorhand {
+            // TODO: Implement Ramsch
+            if self.ruleset == None { return Err("Ramsch not implemented yet") }
+            self.game_progress = 1;
+            self.round_progress = 0;
+        }
+        return Ok(true);
+    }
+
+    pub fn announcement_is_valid(&self, announce_ruleset: Option<Ruleset>) -> bool {
+        if announce_ruleset.is_none() {
+            return true;
+        }
+        // Announcement needs to be higher value than the last
+        if self.ruleset.is_some() {
+            if announce_ruleset.value <= self.ruleset.unwrap().value { return false }
+        }
+
+        // Caller cannot have the sow in hand that is called
+        if ruleset.unwrap().sow != None { } 
+
+        // TODO: complete
     }
 
     pub fn play_card(&mut self, card: &Card) -> Result<bool, &'static str> {
         if self.game_progress != 1 {
             return Err("Attempted to play card while not in play phase");
         }
-
+        
         if !Self::card_is_valid(self, card) {
             return Ok(false);
         }
@@ -250,6 +292,18 @@ mod tests {
                 assert_eq!(cards_in_location, 8, "Player {} does not have the right card amount", location);
             } else {
                 assert_eq!(cards_in_location, 0, "Cards assigned outside hand at location {}", location);
+            }
+        }
+    }
+
+
+    #[test]
+    fn test_play_round() {
+        let mut game = Game::new(0);
+        loop {
+            let hand_on_turn = game.get_cards_in_location(game.vorhand+1);
+            for card in hand_on_turn {
+                if game.play_card(&card) { break; }
             }
         }
         }
