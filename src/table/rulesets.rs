@@ -8,10 +8,31 @@ pub struct Ruleset {
     pub value: u8
 }
 impl Ruleset {
-    fn card_is_trump(&self, card: &Card) -> bool {
+    pub fn card_is_trump(&self, card: &Card) -> bool {
         return self.trump_color == Some(card.color)
             || self.trump_symbols[0] == Some(card.symbol)
             || self.trump_symbols[1] == Some(card.symbol);
+    }
+
+    pub fn compare_cards(&self, card1: &Card, card2: &Card, first_card: &Card) -> bool {
+        // Trump decides
+        if self.card_is_trump(card1) != self.card_is_trump(card2) {
+            return self.card_is_trump(card1);
+        }
+        // First color decides
+        if !self.card_is_trump(card1) {
+            if (card1.color == first_card.color)
+                != (card1.color == first_card.color)
+            {
+                return card1.color == first_card.color;
+            }
+        }
+        // Higher symbol decides
+        if card1.symbol != card2.symbol {
+            return card1.symbol as u8 > card2.symbol as u8;
+        }
+        // Higher color decides
+        return card1.color as u8 > card2.color as u8;
     }
 }
 

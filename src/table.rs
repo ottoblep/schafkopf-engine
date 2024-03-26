@@ -35,7 +35,7 @@ pub struct Game {
     /*
     The game progresses by calling:
     - new() to initialize a game
-    - Players announce_game() clockwise until game_progress changes to 1 which means a ruleset is chosen
+    - Players announce_game() until game_progress changes to 1 which means a ruleset is chosen
     - Players play_card() clockwise until the winner is chosen
     */
 }
@@ -176,9 +176,9 @@ impl Game {
             return true;
         }
         // Can be played with the current first card?
-        if self.is_trump(&self.first_card.unwrap()) {
+        if self.ruleset.unwrap().card_is_trump(&self.first_card.unwrap()) {
             // First card is trump
-            if self.is_trump(card) || !self.has_trump_in_hand(self.vorhand) {
+            if self.ruleset.unwrap().card_is_trump(card) || !self.has_trump_in_hand(self.vorhand) {
                 return true;
             }
         } else {
@@ -205,20 +205,9 @@ impl Game {
     fn has_trump_in_hand(&self, hand: u8) -> bool {
         let mut hand_cards = self.get_cards_in_location(hand);
         for card in hand_cards.drain() {
-            if self.is_trump(&card) {
+            if self.ruleset.unwrap().card_is_trump(&card) {
                 return true;
             }
-        }
-        return false;
-    }
-
-    fn is_trump(&self, card: &Card) -> bool {
-        assert!(self.ruleset.is_some());
-        if card.color == self.ruleset.unwrap().trump_color.unwrap()
-            || card.symbol == self.ruleset.unwrap().trump_symbols[0].unwrap()
-            || card.symbol == self.ruleset.unwrap().trump_symbols[1].unwrap()
-        {
-            return true;
         }
         return false;
     }
@@ -231,7 +220,7 @@ impl Game {
                 highest_card = Some(card.clone());
                 continue;
             }
-            if self.card_is_higher(&card, &highest_card.unwrap()) {
+            if self.ruleset.unwrap().compare_cards(&card, &highest_card.unwrap(), &self.first_card.unwrap()) {
                 highest_card = Some(card.clone());
             }
         }
@@ -252,27 +241,6 @@ impl Game {
             .map(|(idx, _)| idx)
             .unwrap()
             .clone() as u8;
-    }
-
-    fn card_is_higher(&self, card1: &Card, card2: &Card) -> bool {
-        // Trump decides
-        if self.is_trump(card1) != self.is_trump(card2) {
-            return self.is_trump(card1);
-        }
-        // First color decides
-        if !self.is_trump(card1) {
-            if (card1.color == self.first_card.unwrap().color)
-                != (card1.color == self.first_card.unwrap().color)
-            {
-                return card1.color == self.first_card.unwrap().color;
-            }
-        }
-        // Higher symbol decides
-        if card1.symbol != card2.symbol {
-            return card1.symbol as u8 > card2.symbol as u8;
-        }
-        // Higher color decides
-        return card1.color as u8 > card2.color as u8;
     }
 }
 
