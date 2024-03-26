@@ -191,7 +191,7 @@ impl Game {
         // Can be played with the current first card?
         if self.ruleset.unwrap().card_is_trump(&self.first_card.unwrap()) {
             // First card is trump
-            if self.ruleset.unwrap().card_is_trump(card) || !self.has_trump_in_hand(self.vorhand) {
+            if self.ruleset.unwrap().card_is_trump(card) || self.has_trump_in_hand(self.vorhand) == Ok(false) {
                 return Ok(true);
             }
         } else {
@@ -215,14 +215,15 @@ impl Game {
         return false;
     }
 
-    fn has_trump_in_hand(&self, hand: u8) -> bool {
+    fn has_trump_in_hand(&self, hand: u8) -> Result<bool, &'static str> {
+        if self.ruleset.is_none() { return Err("No ruleset has been chosen") }
         let mut hand_cards = self.get_cards_in_location(hand);
         for card in hand_cards.drain() {
             if self.ruleset.unwrap().card_is_trump(&card) {
-                return true;
+                return Ok(true);
             }
         }
-        return false;
+        return Ok(false);
     }
 
     fn determine_round_winner(&self) -> u8 {
