@@ -266,13 +266,22 @@ mod tests {
 
 
     #[test]
-    fn test_play_round() {
-        let mut game = Game::new(0);
-        loop {
-            let hand_on_turn = game.get_cards_in_location(game.vorhand+1);
-            for card in hand_on_turn {
-                if game.play_card(&card) { break; }
-            }
-        }
+    fn test_compare_cards() {
+        assert!(SCHELLEN_SAUSPIEL.compare_cards(
+            &Card {color: Colors::Gras, symbol: Symbols::Ober},
+            &Card {color: Colors::Schelln, symbol: Symbols::Unter},
+            &Card {color: Colors::Herz, symbol: Symbols::Unter}));
+        assert!(GRAS_SAUSPIEL.compare_cards(
+            &Card {color: Colors::Eichel, symbol: Symbols::Zehn},
+            &Card {color: Colors::Eichel, symbol: Symbols::Koenig},
+            &Card {color: Colors::Eichel, symbol: Symbols::Acht}));
+        assert!(EICHEL_SAUSPIEL.compare_cards(
+            &Card {color: Colors::Schelln, symbol: Symbols::Unter},
+            &Card {color: Colors::Herz, symbol: Symbols::Ass},
+            &Card {color: Colors::Schelln, symbol: Symbols::Ass}));
+        assert!(SCHELLEN_SAUSPIEL.compare_cards(
+            &Card {color: Colors::Eichel, symbol: Symbols::Neun},
+            &Card {color: Colors::Gras, symbol: Symbols::Zehn},
+            &Card {color: Colors::Eichel, symbol: Symbols::Sieben}));
         }
 }
