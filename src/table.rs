@@ -90,7 +90,7 @@ impl Game {
         let announce_sow = announce_ruleset.unwrap().sow;
         if announce_sow.is_some() {
             // Caller cannot have the sow in hand that is called
-            if self.get_card_owner(&announce_sow.unwrap()) == self.round_progress { return false; }
+            if self.get_card_owner(&announce_sow.unwrap()) == Ok(self.round_progress) { return false; }
             // Caller needs to have at least one card of the sow color which is not trump
             // TODO: check for not being trump
             if !self.has_color_in_hand(announce_sow.unwrap().color, self.round_progress) { return false; }
@@ -171,13 +171,17 @@ impl Game {
         self.game_progress += 1;
     }
 
-    fn get_card_owner(&self, card: &Card) -> u8 {
-        return self.starting_hands.get(card).unwrap() - 1;
+    fn get_card_owner(&self, card: &Card) -> Result<u8, &'static str> {
+        let location = self.starting_hands.get(card);
+        match location {
+            Some(i) => Ok(i - 1),
+            None => Err("Card has disappeared")
+        }
     }
 
     fn card_is_valid(&self, card: &Card) -> bool {
         // Is in player hand whos turn it is
-        if !self.vorhand == self.get_card_owner(card) {
+        if Ok(self.vorhand) != self.get_card_owner(card) {
             return false;
         }
         // First card is always valid
