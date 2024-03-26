@@ -101,37 +101,6 @@ impl Game {
         // TODO: complete
     }
 
-    pub fn play_card(&mut self, card: &Card) -> Result<bool, &'static str> {
-        if self.game_progress != 1 {
-            return Err("Attempted to play card while not in play phase");
-        }
-        
-        if Self::card_is_valid(self, card) == Ok(false) {
-            return Ok(false);
-        }
-
-        // Assign first card
-        if self.round_progress == 0 {
-            self.first_card = Some(card.clone());
-        }
-
-        // Play card
-        self.deck.insert(card.clone(), 0); // Move card into play
-        self.round_progress += 1;
-
-        // Check for end of round
-        if self.round_progress == 4 {
-            self.end_round();
-        }
-
-        // Check for end of game
-        if self.game_progress == 4 {
-            self.winner = Some(self.determine_game_winner());
-        }
-
-        return Ok(true);
-    }
-
     pub fn get_cards_in_location(&self, location: u8) -> HashSet<Card> {
         let mut hand = HashSet::new();
         for card in self.deck.clone() {
@@ -156,17 +125,6 @@ impl Game {
             deck.insert(*card, (n % 4 + 1).try_into().unwrap());
         }
         return deck;
-    }
-
-    fn end_round(&mut self) {
-        let mut cards_in_stich = self.get_cards_in_location(0);
-        let winner = self.determine_round_winner();
-        for card in cards_in_stich.drain() {
-            self.deck.insert(card, winner + 5); // Move cards to winner owned
-        }
-        self.vorhand = winner;
-        self.round_progress = 0;
-        self.game_progress += 1;
     }
 
     fn get_card_owner(&self, card: &Card) -> Result<u8, &'static str> {
