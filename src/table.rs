@@ -60,7 +60,7 @@ impl Game {
             return Err("Attempted to announce a game while not in choosing ruleset phase");
         }
 
-        if !self.announcement_is_valid(announce_ruleset) {
+        if self.announcement_is_valid(announce_ruleset) {
             self.vorhand = self.round_progress; // Set the new announcer 
             self.ruleset = announce_ruleset;
         } else {
@@ -80,16 +80,27 @@ impl Game {
     }
 
     pub fn announcement_is_valid(&self, announce_ruleset: Option<Ruleset>) -> bool {
+        // Passing is always allowed
         if announce_ruleset.is_none() {
             return true;
         }
         // Announcement needs to be higher value than the last
         if self.ruleset.is_some() {
-            if announce_ruleset.value <= self.ruleset.unwrap().value { return false }
+            if announce_ruleset.unwrap().value <= self.ruleset.unwrap().value { return false }
         }
 
+        let announce_sow = announce_ruleset.unwrap().sow;
+        if  announce_sow.is_some() {
         // Caller cannot have the sow in hand that is called
-        if ruleset.unwrap().sow != None { } 
+            if self.get_card_owner(&announce_sow.unwrap()) == self.round_progress { return false; }
+            // Caller needs to have at least one card of the sow color which is not trump
+            // TODO: check for not being trump
+            if !self.has_color_in_hand(announce_sow.unwrap().color, self.round_progress) { return false; }
+        }
+
+        //
+
+        return true;
 
         // TODO: complete
     }
