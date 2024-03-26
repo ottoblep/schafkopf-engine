@@ -143,23 +143,30 @@ impl Game {
         // First card is always valid
         // TODO: This is wrong
         if self.round_progress == 0 {
-            return Ok(true);
+           return Ok(true);
         }
         // Can be played with the current first card?
-        if self.ruleset.unwrap().card_is_trump(&self.first_card.unwrap()) {
-            // First card is trump
-            if self.ruleset.unwrap().card_is_trump(card) || self.has_trump_in_hand(self.vorhand) == Ok(false) {
-                return Ok(true);
+        if self.first_card.is_some() {
+            if self.ruleset.unwrap().card_is_trump(&self.first_card.unwrap()) {
+                // First card is trump
+                if self.ruleset.unwrap().card_is_trump(card) || self.has_trump_in_hand(self.vorhand) == Ok(false) {
+                    Ok(true)
+                } else {
+                    Ok(false)
+                }
+            } else {
+                // First card is color
+                if card.color == self.first_card.unwrap().color
+                    || !self.has_color_in_hand(self.first_card.unwrap().color, self.vorhand)
+                {
+                    Ok(true)
+                } else {
+                    Ok(false)
+                }
             }
         } else {
-            // First card is color
-            if card.color == self.first_card.unwrap().color
-                || !self.has_color_in_hand(self.first_card.unwrap().color, self.vorhand)
-            {
-                return Ok(true);
-            }
+            Ok(true)
         }
-        return Ok(false);
     }
 
     fn has_color_in_hand(&self, color: Colors, hand: u8) -> bool {
