@@ -85,13 +85,11 @@ impl Game {
             return true;
         }
         // Announcement needs to be higher value than the last
-        if self.ruleset.is_some() {
-            if announce_ruleset.unwrap().value <= self.ruleset.unwrap().value { return false }
-        }
+        if announce_ruleset.unwrap().value <= self.ruleset.map_or(0, |x| x.value) { return false }
 
         let announce_sow = announce_ruleset.unwrap().sow;
-        if  announce_sow.is_some() {
-        // Caller cannot have the sow in hand that is called
+        if announce_sow.is_some() {
+            // Caller cannot have the sow in hand that is called
             if self.get_card_owner(&announce_sow.unwrap()) == self.round_progress { return false; }
             // Caller needs to have at least one card of the sow color which is not trump
             // TODO: check for not being trump
@@ -294,5 +292,5 @@ mod tests {
             &Card {color: Colors::Eichel, symbol: Symbols::Neun},
             &Card {color: Colors::Gras, symbol: Symbols::Zehn},
             &Card {color: Colors::Eichel, symbol: Symbols::Sieben}));
-        }
+    }
 }

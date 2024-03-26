@@ -40,26 +40,26 @@ pub static EICHEL_SAUSPIEL: Ruleset = Ruleset {
     trump_color: Some(Colors::Herz),
     trump_symbols: [Some(Symbols::Unter), Some(Symbols::Ober)],
     sow: Some(Card { color: Colors::Eichel, symbol: Symbols::Ass }),
-    value: 0
+    value: 1
 };
 
 pub static GRAS_SAUSPIEL: Ruleset = Ruleset {
     trump_color: Some(Colors::Herz),
     trump_symbols: [Some(Symbols::Unter), Some(Symbols::Ober)],
     sow: Some(Card { color: Colors::Gras, symbol: Symbols::Ass }),
-    value: 0
+    value: 1
 };
 
 pub static SCHELLEN_SAUSPIEL: Ruleset = Ruleset {
     trump_color: Some(Colors::Herz),
     trump_symbols: [Some(Symbols::Unter), Some(Symbols::Ober)],
     sow: Some(Card { color: Colors::Schelln, symbol: Symbols::Ass }),
-    value: 0
+    value: 1
 };
 
 pub static WENZ: Ruleset = Ruleset {
     trump_color: None,
     trump_symbols: [Some(Symbols::Unter), None],
     sow: None,
-    value: 1
+    value: 2
 };
