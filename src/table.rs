@@ -128,9 +128,8 @@ impl Game {
     }
 
     fn get_card_owner(&self, card: &Card) -> Result<u8, &'static str> {
-        let location = self.starting_hands.get(card);
-        match location {
-            Some(i) => Ok(i - 1),
+        match self.starting_hands.get(card) {
+            Some(location) => Ok(location - 1),
             None => Err("Card has disappeared")
         }
     }
@@ -184,7 +183,9 @@ impl Game {
         return Ok(false);
     }
 
-    fn determine_round_winner(&self) -> u8 {
+    fn determine_round_winner(&self) -> Result<u8, &'static str> {
+        if self.ruleset.is_none() { return Err("No ruleset has been chosen") }
+        if self.first_card.is_none() { return Err("Attempted to determine winner for round that has not started") }
         let mut cards_in_stich = self.get_cards_in_location(0);
         let mut highest_card: Option<Card> = None;
         for (i, card) in cards_in_stich.drain().enumerate() {
@@ -196,7 +197,10 @@ impl Game {
                 highest_card = Some(card.clone());
             }
         }
-        return self.starting_hands.get(&highest_card.unwrap()).unwrap() - 1;
+        match self.starting_hands.get(&highest_card.unwrap()) {
+            Some(location) => Ok(location - 1),
+            None => Err("Card has disappeared")
+        }
     }
 
     fn determine_game_winner(&self) -> u8 {
