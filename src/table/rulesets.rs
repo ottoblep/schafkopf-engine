@@ -4,7 +4,8 @@ use crate::table::cards::*;
 pub struct Ruleset {
     pub trump_color: Option<Colors>,
     pub trump_symbols: [Option<Symbols>; 2],
-    pub has_teams: bool,
+    pub sow: Option<Card>,
+    pub value: u8
 }
 impl Ruleset {
     fn card_is_trump(&self, card: &Card) -> bool {
@@ -14,14 +15,30 @@ impl Ruleset {
     }
 }
 
-pub static SAUSPIEL: Ruleset = Ruleset {
+pub static EICHEL_SAUSPIEL: Ruleset = Ruleset {
     trump_color: Some(Colors::Herz),
     trump_symbols: [Some(Symbols::Unter), Some(Symbols::Ober)],
-    has_teams: true,
+    sow: Some(Card { color: Colors::Eichel, symbol: Symbols::Ass }),
+    value: 0
+};
+
+pub static GRAS_SAUSPIEL: Ruleset = Ruleset {
+    trump_color: Some(Colors::Herz),
+    trump_symbols: [Some(Symbols::Unter), Some(Symbols::Ober)],
+    sow: Some(Card { color: Colors::Gras, symbol: Symbols::Ass }),
+    value: 0
+};
+
+pub static SCHELLEN_SAUSPIEL: Ruleset = Ruleset {
+    trump_color: Some(Colors::Herz),
+    trump_symbols: [Some(Symbols::Unter), Some(Symbols::Ober)],
+    sow: Some(Card { color: Colors::Schelln, symbol: Symbols::Ass }),
+    value: 0
 };
 
 pub static WENZ: Ruleset = Ruleset {
     trump_color: None,
     trump_symbols: [Some(Symbols::Unter), None],
-    has_teams: true,
+    sow: None,
+    value: 1
 };
