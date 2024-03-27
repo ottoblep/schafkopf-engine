@@ -1,7 +1,9 @@
 pub mod cards;
 pub mod rulesets;
+mod gamestate;
 use crate::table::cards::*;
 use crate::table::rulesets::*;
+use crate::table::gamestate::*;
 use rand;
 use rand::seq::SliceRandom;
 use std::collections::*;
@@ -22,7 +24,7 @@ pub struct Game {
     // Bits 0..3 descibe team assignment for players 1 to 4
     pub winner: Option<u8>,
     // Winner 1..4
-    pub game_progress: u8,
+    pub game_progress: GameState,
     // Game Progress can be:
     // 0. Announcement phase 1. Play Phase 2. Done
     pub round_progress: u8,
@@ -48,7 +50,7 @@ impl Game {
             ruleset: None,
             teams: None,
             winner: None,
-            game_progress: 0,
+            game_progress: GameState::AnnouncementPhase,
             round_progress: (dealer + 1) % 4,
             vorhand: (dealer + 1) % 4,
             first_card: None,
@@ -56,7 +58,7 @@ impl Game {
     }
 
     pub fn announce_game(&mut self, announce_ruleset: Option<Ruleset>) -> Result<bool, &'static str> {
-        if self.game_progress != 0 {
+        if self.game_progress != GameState::AnnouncementPhase {
             return Err("Attempted to announce a game while not in choosing ruleset phase");
         }
 
@@ -73,10 +75,16 @@ impl Game {
         if self.round_progress == self.vorhand {
             // TODO: Implement Ramsch
             if self.ruleset == None { return Err("Ramsch not implemented yet") }
-            self.game_progress = 1;
-            self.round_progress = 0;
+            match self.game_progress.advance() {
+                Ok(v) => {
+                     self.round_progress = 0;
+                     return Ok(true)
+                    },
+                Err(e) => return Err(e)
+            }
         }
-        return Ok(true);
+
+        Ok(true)
     }
 
     pub fn announcement_is_valid(&self, announce_ruleset: Option<Ruleset>) -> bool {
