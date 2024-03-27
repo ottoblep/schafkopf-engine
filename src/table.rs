@@ -1,13 +1,46 @@
 pub mod cards;
 pub mod rulesets;
-mod gamestate;
 use crate::table::cards::*;
 use crate::table::rulesets::*;
-use crate::table::gamestate::*;
 use rand;
 use rand::seq::SliceRandom;
+use sm::NoneEvent;
 use std::collections::*;
 use strum::IntoEnumIterator;
+extern crate sm;
+use sm::sm;
+
+use self::GameState::AnnounceNone;
+use self::GameState::AnnounceSome;
+
+sm! {
+    GameState {
+        InitialStates { Start }
+
+        AnnounceNone {
+            Start => Announce1
+            Announce1 => Announce2
+            Announce2 => Announce3
+            Announce3 => Play1
+        }
+        AnnounceSome {
+            Start => Announce1
+            Announce2 => Announce1
+            Announce3 => Announce1
+        }
+        PlayCard {
+            Play1 => Play2
+            Play2 => Play3
+            Play3 => Play4
+        }
+        NextRound {
+            Play4 => Play1
+        }
+        Finish {
+            Play4 => Done
+        }
+    }
+}
 
 pub struct Game {
     deck: HashMap<Card, u8>,           // Location of the cards
@@ -17,22 +50,17 @@ pub struct Game {
     // 1. Hand Player1  2. Hand Player2  3. Hand Player3  4. Hand Player4
     // 5. Owned Player1 6.Owned Player2 7. Owned Player3 8. Owned Player4
     pub ruleset: Option<Ruleset>,
-    // Tracks the last and highest game announced
+    // Tracks the last game announced
     teams: Option<u8>,
     // Only two teams can exist
     // Teams might not be known to all players at the start
     // Bits 0..3 descibe team assignment for players 1 to 4
     pub winner: Option<u8>,
-    // Winner 1..4
-    pub game_progress: GameState,
-    // Game Progress can be:
-    // 0. Announcement phase 1. Play Phase 2. Done
-    pub turn: u8,
-    // Player currently defining the next action 0..3
-    // also tracks the player currently able to announce a game during announcement phase
+    // Winner 0..3
+    pub game_progress: GameState::Machine<GameState::Start, NoneEvent>,
+    pub announce_turn: u8,
+    pub play_turn: u8,
     pub vorhand: u8,
-    // The vorhand (first player who comes out with a card) 0..3
-    // also tracks the player that has announced the highest game during announcement phase
     pub first_card: Option<Card>,
     /*
     The game progresses by calling:
@@ -50,41 +78,32 @@ impl Game {
             ruleset: None,
             teams: None,
             winner: None,
-            game_progress: GameState::AnnouncementPhase,
-            turn: (dealer + 1) % 4,
+            game_progress: GameState::Machine::new(GameState::Start),
+            announce_turn: (dealer + 1) % 4,
+            play_turn: (dealer + 1) % 4,
+            // Tracks the first player to come out in game phase and the last announcer in announcement phase
             vorhand: (dealer + 1) % 4,
             first_card: None,
         };
     }
 
-    pub fn announce_game(&mut self, announce_ruleset: Option<Ruleset>) -> Result<bool, &'static str> {
-        if self.game_progress != GameState::AnnouncementPhase {
-            return Err("Attempted to announce a game while not in choosing ruleset phase");
-        }
-
-        if self.announcement_is_valid(announce_ruleset) {
-            self.vorhand = self.turn; // Set the new announcer 
-            self.ruleset = announce_ruleset;
-        } else {
-            return Ok(false)
-        }
-
-        self.turn = self.turn + 1 % 4;
-
-        // If one round is completed without a new announcement move to next phase
-        if self.turn == self.vorhand {
-            // TODO: Implement Ramsch
-            if self.ruleset == None { return Err("Ramsch not implemented yet") }
-            match self.game_progress.advance() {
-                Ok(v) => {
-                     self.turn = 0;
-                     return Ok(true)
-                    },
-                Err(e) => return Err(e)
+    pub fn announce_game(mut self, announce_ruleset: Option<Ruleset>) -> bool {
+        match announce_ruleset {
+            Some(announced_ruleset) => {
+                if self.announcement_is_valid(announce_ruleset) {
+                    self.ruleset = announce_ruleset;
+                    self.game_progress.transition(AnnounceSome);
+                } else {
+                    return false;
+                }
+            },
+            None => {
+                self.announce_turn = self.announce_turn + 1;
+                self.game_progress.transition(AnnounceNone);
             }
         }
-
-        Ok(true)
+        self.announce_turn = self.announce_turn + 1 % 4;
+        true
     }
 
     pub fn announcement_is_valid(&self, announce_ruleset: Option<Ruleset>) -> bool {
@@ -98,10 +117,10 @@ impl Game {
         let announce_sow = announce_ruleset.unwrap().sow;
         if announce_sow.is_some() {
             // Caller cannot have the sow in hand that is called
-            if self.get_card_owner(&announce_sow.unwrap()) == Ok(self.turn) { return false; }
+            if self.get_card_owner(&announce_sow.unwrap()) == Ok(self.announce_turn) { return false; }
             // Caller needs to have at least one card of the sow color which is not trump
             // TODO: check for not being trump
-            if !self.has_color_in_hand(announce_sow.unwrap().color, self.turn) { return false; }
+            if !self.has_color_in_hand(announce_sow.unwrap().color, self.announce_turn) { return false; }
         }
 
         return true;
@@ -150,7 +169,7 @@ impl Game {
         }
         // First card is always valid
         // TODO: This is wrong
-        if self.turn == 0 {
+        if self.play_turn == 0 {
            return Ok(true);
         }
         // Can be played with the current first card?
