@@ -27,7 +27,7 @@ pub struct Game {
     pub game_progress: GameState,
     // Game Progress can be:
     // 0. Announcement phase 1. Play Phase 2. Done
-    pub round_progress: u8,
+    pub turn: u8,
     // Player currently defining the next action 0..3
     // also tracks the player currently able to announce a game during announcement phase
     pub vorhand: u8,
@@ -51,7 +51,7 @@ impl Game {
             teams: None,
             winner: None,
             game_progress: GameState::AnnouncementPhase,
-            round_progress: (dealer + 1) % 4,
+            turn: (dealer + 1) % 4,
             vorhand: (dealer + 1) % 4,
             first_card: None,
         };
@@ -63,21 +63,21 @@ impl Game {
         }
 
         if self.announcement_is_valid(announce_ruleset) {
-            self.vorhand = self.round_progress; // Set the new announcer 
+            self.vorhand = self.turn; // Set the new announcer 
             self.ruleset = announce_ruleset;
         } else {
             return Ok(false)
         }
 
-        self.round_progress = self.round_progress + 1 % 4;
+        self.turn = self.turn + 1 % 4;
 
         // If one round is completed without a new announcement move to next phase
-        if self.round_progress == self.vorhand {
+        if self.turn == self.vorhand {
             // TODO: Implement Ramsch
             if self.ruleset == None { return Err("Ramsch not implemented yet") }
             match self.game_progress.advance() {
                 Ok(v) => {
-                     self.round_progress = 0;
+                     self.turn = 0;
                      return Ok(true)
                     },
                 Err(e) => return Err(e)
@@ -98,10 +98,10 @@ impl Game {
         let announce_sow = announce_ruleset.unwrap().sow;
         if announce_sow.is_some() {
             // Caller cannot have the sow in hand that is called
-            if self.get_card_owner(&announce_sow.unwrap()) == Ok(self.round_progress) { return false; }
+            if self.get_card_owner(&announce_sow.unwrap()) == Ok(self.turn) { return false; }
             // Caller needs to have at least one card of the sow color which is not trump
             // TODO: check for not being trump
-            if !self.has_color_in_hand(announce_sow.unwrap().color, self.round_progress) { return false; }
+            if !self.has_color_in_hand(announce_sow.unwrap().color, self.turn) { return false; }
         }
 
         return true;
@@ -150,7 +150,7 @@ impl Game {
         }
         // First card is always valid
         // TODO: This is wrong
-        if self.round_progress == 0 {
+        if self.turn == 0 {
            return Ok(true);
         }
         // Can be played with the current first card?
