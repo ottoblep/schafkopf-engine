@@ -1,46 +1,16 @@
 pub mod cards;
 pub mod rulesets;
+pub mod state;
+
 use crate::table::cards::*;
 use crate::table::rulesets::*;
+use crate::table::state::*;
+
 use rand;
 use rand::seq::SliceRandom;
-use sm::NoneEvent;
+
 use std::collections::*;
 use strum::IntoEnumIterator;
-extern crate sm;
-use sm::sm;
-
-use self::GameState::AnnounceNone;
-use self::GameState::AnnounceSome;
-
-sm! {
-    GameState {
-        InitialStates { Start }
-
-        AnnounceNone {
-            Start => Announce1
-            Announce1 => Announce2
-            Announce2 => Announce3
-            Announce3 => Play1
-        }
-        AnnounceSome {
-            Start => Announce1
-            Announce2 => Announce1
-            Announce3 => Announce1
-        }
-        PlayCard {
-            Play1 => Play2
-            Play2 => Play3
-            Play3 => Play4
-        }
-        NextRound {
-            Play4 => Play1
-        }
-        Finish {
-            Play4 => Done
-        }
-    }
-}
 
 pub struct Game {
     deck: HashMap<Card, u8>,           // Location of the cards
@@ -57,7 +27,7 @@ pub struct Game {
     // Bits 0..3 descibe team assignment for players 1 to 4
     pub winner: Option<u8>,
     // Winner 0..3
-    pub game_progress: GameState::Machine<GameState::Start, NoneEvent>,
+    pub game_progress: GameState,
     pub announce_turn: u8,
     pub play_turn: u8,
     pub vorhand: u8,
@@ -72,60 +42,59 @@ pub struct Game {
 impl Game {
     pub fn new(dealer: u8) -> Self {
         let starting_cards = Self::new_cards();
-        return Self {
+        Self {
             deck: starting_cards.clone(),
             starting_hands: starting_cards,
             ruleset: None,
             teams: None,
             winner: None,
-            game_progress: GameState::Machine::new(GameState::Start),
+            game_progress: GameState::new(),
             announce_turn: (dealer + 1) % 4,
             play_turn: (dealer + 1) % 4,
             // Tracks the first player to come out in game phase and the last announcer in announcement phase
             vorhand: (dealer + 1) % 4,
             first_card: None,
-        };
+        }
     }
 
-    pub fn announce_game(mut self, announce_ruleset: Option<Ruleset>) -> bool {
+    pub fn announce_game(&mut self, announce_ruleset: Option<Ruleset>) -> bool {
         match announce_ruleset {
             Some(announced_ruleset) => {
-                if self.announcement_is_valid(announce_ruleset) {
-                    self.ruleset = announce_ruleset;
-                    self.game_progress.transition(AnnounceSome);
+                if self.announcement_is_valid(announced_ruleset) {
+                    self.ruleset = Some(announced_ruleset);
+                    self.game_progress.AnnounceSome();
                 } else {
                     return false;
                 }
-            },
+            }
             None => {
                 self.announce_turn = self.announce_turn + 1;
-                self.game_progress.transition(AnnounceNone);
+                self.game_progress.AnnounceNone();
             }
         }
         self.announce_turn = self.announce_turn + 1 % 4;
         true
     }
 
-    pub fn announcement_is_valid(&self, announce_ruleset: Option<Ruleset>) -> bool {
-        // Passing is always allowed
-        if announce_ruleset.is_none() {
-            return true;
-        }
+    pub fn announcement_is_valid(&self, announce_ruleset: Ruleset) -> bool {
         // Announcement needs to be higher value than the last
-        if announce_ruleset.unwrap().value <= self.ruleset.map_or(0, |x| x.value) { return false }
+        if announce_ruleset.value <= self.ruleset.map_or(0, |x| x.value) {
+            return false;
+        }
 
-        let announce_sow = announce_ruleset.unwrap().sow;
+        let announce_sow = announce_ruleset.sow;
         if announce_sow.is_some() {
             // Caller cannot have the sow in hand that is called
-            if self.get_card_owner(&announce_sow.unwrap()) == Ok(self.announce_turn) { return false; }
+            if self.get_card_owner(&announce_sow.unwrap()) == Ok(self.announce_turn) {
+                return false;
+            }
             // Caller needs to have at least one card of the sow color which is not trump
             // TODO: check for not being trump
-            if !self.has_color_in_hand(announce_sow.unwrap().color, self.announce_turn) { return false; }
+            if !self.has_number_of_color_in_hand(announce_sow.unwrap().color, self.announce_turn) {
+                return false;
+            }
         }
-
-        return true;
-
-        // TODO: complete
+        true
     }
 
     pub fn get_cards_in_location(&self, location: u8) -> HashSet<Card> {
@@ -135,7 +104,7 @@ impl Game {
                 hand.insert(card.0);
             }
         }
-        return hand;
+        hand
     }
 
     fn new_cards() -> HashMap<Card, u8> {
@@ -151,18 +120,20 @@ impl Game {
         for (n, card) in deckvec.iter().enumerate() {
             deck.insert(*card, (n % 4 + 1).try_into().unwrap());
         }
-        return deck;
+        deck
     }
 
     fn get_card_owner(&self, card: &Card) -> Result<u8, &'static str> {
         match self.starting_hands.get(card) {
             Some(location) => Ok(location - 1),
-            None => Err("Card has disappeared")
+            None => Err("Card has disappeared"),
         }
     }
 
     fn card_is_valid(&self, card: &Card) -> Result<bool, &'static str> {
-        if self.ruleset.is_none() { return Err("No ruleset has been chosen") }
+        if self.ruleset.is_none() {
+            return Err("No ruleset has been chosen");
+        }
         // Is in player hand whos turn it is
         if Ok(self.vorhand) != self.get_card_owner(card) {
             return Ok(false);
@@ -174,9 +145,15 @@ impl Game {
         }
         // Can be played with the current first card?
         if self.first_card.is_some() {
-            if self.ruleset.unwrap().card_is_trump(&self.first_card.unwrap()) {
+            if self
+                .ruleset
+                .unwrap()
+                .card_is_trump(&self.first_card.unwrap())
+            {
                 // First card is trump
-                if self.ruleset.unwrap().card_is_trump(card) || self.has_trump_in_hand(self.vorhand) == Ok(false) {
+                if self.ruleset.unwrap().card_is_trump(card)
+                    || self.has_trump_in_hand(self.vorhand) == Ok(false)
+                {
                     Ok(true)
                 } else {
                     Ok(false)
@@ -203,23 +180,43 @@ impl Game {
                 return true;
             }
         }
-        return false;
+        false
+    }
+
+    fn has_number_of_color_in_hand(&self, color: Colors, hand: u8) -> bool {
+        let mut hand_cards = self.get_cards_in_location(hand);
+        for card in hand_cards.drain() {
+            if card.color == color
+                && card.symbol != Symbols::Ober
+                && card.symbol != Symbols::Unter
+                && card.symbol != Symbols::Ass
+            {
+                return true;
+            }
+        }
+        false
     }
 
     fn has_trump_in_hand(&self, hand: u8) -> Result<bool, &'static str> {
-        if self.ruleset.is_none() { return Err("No ruleset has been chosen") }
+        if self.ruleset.is_none() {
+            return Err("No ruleset has been chosen");
+        }
         let mut hand_cards = self.get_cards_in_location(hand);
         for card in hand_cards.drain() {
             if self.ruleset.unwrap().card_is_trump(&card) {
                 return Ok(true);
             }
         }
-        return Ok(false);
+        Ok(false)
     }
 
     fn determine_round_winner(&self) -> Result<u8, &'static str> {
-        if self.ruleset.is_none() { return Err("No ruleset has been chosen") }
-        if self.first_card.is_none() { return Err("Attempted to determine winner for round that has not started") }
+        if self.ruleset.is_none() {
+            return Err("No ruleset has been chosen");
+        }
+        if self.first_card.is_none() {
+            return Err("Attempted to determine winner for round that has not started");
+        }
         let mut cards_in_stich = self.get_cards_in_location(0);
         let mut highest_card: Option<Card> = None;
         for (i, card) in cards_in_stich.drain().enumerate() {
@@ -227,13 +224,17 @@ impl Game {
                 highest_card = Some(card.clone());
                 continue;
             }
-            if self.ruleset.unwrap().compare_cards(&card, &highest_card.unwrap(), &self.first_card.unwrap()) {
+            if self.ruleset.unwrap().compare_cards(
+                &card,
+                &highest_card.unwrap(),
+                &self.first_card.unwrap(),
+            ) {
                 highest_card = Some(card.clone());
             }
         }
         match self.starting_hands.get(&highest_card.unwrap()) {
             Some(location) => Ok(location - 1),
-            None => Err("Card has disappeared")
+            None => Err("Card has disappeared"),
         }
     }
 
@@ -244,13 +245,13 @@ impl Game {
                 points[card.1 as usize] += card.0.get_value().unwrap() as u8;
             }
         }
-        return points
+        points
             .iter()
             .enumerate()
             .max()
             .map(|(idx, _)| idx)
             .unwrap()
-            .clone() as u8;
+            .clone() as u8
     }
 }
 
@@ -274,7 +275,6 @@ mod tests {
         }
     }
 
-
     #[test]
     fn test_compare_cards() {
         assert!(SCHELLEN_SAUSPIEL.compare_cards(
@@ -293,5 +293,15 @@ mod tests {
             &Card {color: Colors::Eichel, symbol: Symbols::Neun},
             &Card {color: Colors::Gras, symbol: Symbols::Zehn},
             &Card {color: Colors::Eichel, symbol: Symbols::Sieben}));
+    }
+
+    #[test]
+    fn test_announce_phase() {
+        let mut test_game: Game = Game::new(0);
+        for n in 1..5 {
+            if test_game.announce_game( Some(SCHELLEN_SAUSPIEL) ) {}
+            else { test_game.announce_game(None); }
+        }
+        assert_eq!(test_game.game_progress.state, 4, "Did not reach the expected game state 4. Instead it is {}.", test_game.game_progress.state);
     }
 }
