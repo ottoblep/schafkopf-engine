@@ -78,6 +78,7 @@ impl Game {
 
     pub fn announcement_is_valid(&self, announce_ruleset: Ruleset) -> bool {
         // Announcement needs to be higher value than the last
+        // TODO: Add more rulesets
         if announce_ruleset.value <= self.ruleset.map_or(0, |x| x.value) {
             return false;
         }
@@ -141,7 +142,7 @@ impl Game {
         // First card is always valid
         // TODO: This is wrong
         if self.play_turn == 0 {
-           return Ok(true);
+            return Ok(true);
         }
         // Can be played with the current first card?
         if self.first_card.is_some() {
@@ -266,11 +267,20 @@ mod tests {
         assert_eq!(starting_cards.len(), 32, "Too many cards in play");
         // Count that each hand has exactly four cards and no cards elsewhere
         for location in 0..9 {
-            let cards_in_location: usize = starting_cards.values().filter(|l| **l == location).count();
-            if location >= 1 && location <=4 {
-                assert_eq!(cards_in_location, 8, "Player {} does not have the right card amount", location);
+            let cards_in_location: usize =
+                starting_cards.values().filter(|l| **l == location).count();
+            if location >= 1 && location <= 4 {
+                assert_eq!(
+                    cards_in_location, 8,
+                    "Player {} does not have the right card amount",
+                    location
+                );
             } else {
-                assert_eq!(cards_in_location, 0, "Cards assigned outside hand at location {}", location);
+                assert_eq!(
+                    cards_in_location, 0,
+                    "Cards assigned outside hand at location {}",
+                    location
+                );
             }
         }
     }
@@ -278,30 +288,78 @@ mod tests {
     #[test]
     fn test_compare_cards() {
         assert!(SCHELLEN_SAUSPIEL.compare_cards(
-            &Card {color: Colors::Gras, symbol: Symbols::Ober},
-            &Card {color: Colors::Schelln, symbol: Symbols::Unter},
-            &Card {color: Colors::Herz, symbol: Symbols::Unter}));
+            &Card {
+                color: Colors::Gras,
+                symbol: Symbols::Ober
+            },
+            &Card {
+                color: Colors::Schelln,
+                symbol: Symbols::Unter
+            },
+            &Card {
+                color: Colors::Herz,
+                symbol: Symbols::Unter
+            }
+        ));
         assert!(GRAS_SAUSPIEL.compare_cards(
-            &Card {color: Colors::Eichel, symbol: Symbols::Zehn},
-            &Card {color: Colors::Eichel, symbol: Symbols::Koenig},
-            &Card {color: Colors::Eichel, symbol: Symbols::Acht}));
+            &Card {
+                color: Colors::Eichel,
+                symbol: Symbols::Zehn
+            },
+            &Card {
+                color: Colors::Eichel,
+                symbol: Symbols::Koenig
+            },
+            &Card {
+                color: Colors::Eichel,
+                symbol: Symbols::Acht
+            }
+        ));
         assert!(EICHEL_SAUSPIEL.compare_cards(
-            &Card {color: Colors::Schelln, symbol: Symbols::Unter},
-            &Card {color: Colors::Herz, symbol: Symbols::Ass},
-            &Card {color: Colors::Schelln, symbol: Symbols::Ass}));
+            &Card {
+                color: Colors::Schelln,
+                symbol: Symbols::Unter
+            },
+            &Card {
+                color: Colors::Herz,
+                symbol: Symbols::Ass
+            },
+            &Card {
+                color: Colors::Schelln,
+                symbol: Symbols::Ass
+            }
+        ));
         assert!(SCHELLEN_SAUSPIEL.compare_cards(
-            &Card {color: Colors::Eichel, symbol: Symbols::Neun},
-            &Card {color: Colors::Gras, symbol: Symbols::Zehn},
-            &Card {color: Colors::Eichel, symbol: Symbols::Sieben}));
+            &Card {
+                color: Colors::Eichel,
+                symbol: Symbols::Neun
+            },
+            &Card {
+                color: Colors::Gras,
+                symbol: Symbols::Zehn
+            },
+            &Card {
+                color: Colors::Eichel,
+                symbol: Symbols::Sieben
+            }
+        ));
     }
 
     #[test]
     fn test_announce_phase() {
         let mut test_game: Game = Game::new(0);
         for n in 1..5 {
-            if test_game.announce_game( Some(SCHELLEN_SAUSPIEL) ) {}
-            else { test_game.announce_game(None); }
+            if test_game.announce_game(Some(SCHELLEN_SAUSPIEL)) {
+            } else if test_game.announce_game(Some(EICHEL_SAUSPIEL)) {
+            } else if test_game.announce_game(Some(GRAS_SAUSPIEL)) {
+            } else {
+                test_game.announce_game(None);
+            }
         }
-        assert_eq!(test_game.game_progress.state, 4, "Did not reach the expected game state 4. Instead it is {}.", test_game.game_progress.state);
+        assert_eq!(
+            test_game.game_progress.state, 4,
+            "Did not reach the expected game state 4. Instead it is {}.",
+            test_game.game_progress.state
+        );
     }
 }
