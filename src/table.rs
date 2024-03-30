@@ -199,16 +199,18 @@ impl Game {
     }
 
     fn has_trump_in_hand(&self, hand: u8) -> Result<bool, &'static str> {
-        if self.ruleset.is_none() {
-            return Err("No ruleset has been chosen");
-        }
+        match self.ruleset {
+            None => Err("No ruleset has been chosen"),
+            Some(ruleset) => {
         let mut hand_cards = self.get_cards_in_location(hand);
         for card in hand_cards.drain() {
-            if self.ruleset.unwrap().card_is_trump(&card) {
+                    if ruleset.card_is_trump(&card) {
                 return Ok(true);
             }
         }
         Ok(false)
+            }
+        }
     }
 
     fn determine_round_winner(&self) -> Result<u8, &'static str> {
