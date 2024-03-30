@@ -363,5 +363,8 @@ mod tests {
             "Did not reach the expected game state 4. Instead it is {}.",
             test_game.game_progress.state
         );
+        assert!(test_game.teams.is_some());
+        let members_first_team = hamming::weight(&[test_game.teams.unwrap()]);
+        assert!(members_first_team > 0 && members_first_team < 4);
     }
 }
