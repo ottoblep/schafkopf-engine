@@ -56,23 +56,28 @@ impl Game {
         }
     }
 
-    pub fn announce_game(&mut self, announce_ruleset: Option<Ruleset>) -> bool {
+    pub fn announce_game(
+        &mut self,
+        announce_ruleset: Option<Ruleset>,
+    ) -> Result<bool, &'static str> {
         match announce_ruleset {
             Some(announced_ruleset) => {
                 if self.announcement_is_valid(announced_ruleset) {
                     self.ruleset = Some(announced_ruleset);
+                    self.teams =
+                        Some(self.find_teams(&self.deck, announced_ruleset, self.announce_turn)?);
                     self.game_progress.AnnounceSome();
                 } else {
-                    return false;
+                    self.announce_turn = (self.announce_turn + 1) % 4;
+                    return Ok(false);
                 }
             }
             None => {
-                self.announce_turn = self.announce_turn + 1;
                 self.game_progress.AnnounceNone();
             }
         }
-        self.announce_turn = self.announce_turn + 1 % 4;
-        true
+        self.announce_turn = (self.announce_turn + 1) % 4;
+        Ok(true)
     }
 
     pub fn announcement_is_valid(&self, announce_ruleset: Ruleset) -> bool {
@@ -95,6 +100,27 @@ impl Game {
             }
         }
         true
+    }
+
+    fn find_teams(
+        &self,
+        cards: &HashMap<Card, u8>,
+        ruleset: Ruleset,
+        caller: u8,
+    ) -> Result<u8, &'static str> {
+        match ruleset.sow {
+            Some(sow) => {
+                let mut teams: u8 = 0;
+                // Caller is of team 1
+                teams = teams | (1 << caller);
+                // Teammate has the sow
+                teams = teams | (1 << self.get_card_owner(&sow)?);
+                Ok(teams)
+            }
+            None => {
+                Ok(0) // TODO: complete for other rulesets
+            }
+        }
     }
 
     pub fn get_cards_in_location(&self, location: u8) -> HashSet<Card> {
@@ -201,13 +227,13 @@ impl Game {
         match self.ruleset {
             None => Err("No ruleset has been chosen"),
             Some(ruleset) => {
-        let mut hand_cards = self.get_cards_in_location(hand);
-        for card in hand_cards.drain() {
+                let mut hand_cards = self.get_cards_in_location(hand);
+                for card in hand_cards.drain() {
                     if ruleset.card_is_trump(&card) {
-                return Ok(true);
-            }
-        }
-        Ok(false)
+                        return Ok(true);
+                    }
+                }
+                Ok(false)
             }
         }
     }
@@ -349,24 +375,33 @@ mod tests {
 
     #[test]
     fn test_announce_phase() {
-        for i in 1..500 {
+        for _i in 1..500 {
             let mut test_game: Game = Game::new(rand::random::<u8>() % 4);
-        for n in 1..5 {
-            if test_game.announce_game(Some(SCHELLEN_SAUSPIEL)) {
-            } else if test_game.announce_game(Some(EICHEL_SAUSPIEL)) {
-            } else if test_game.announce_game(Some(GRAS_SAUSPIEL)) {
-            } else {
-                test_game.announce_game(None);
+            // TODO: test other rulesets
+            for _n in 1..16 {
+                if test_game.ruleset.is_none() {
+                    test_game.announce_game(Some(SCHELLEN_SAUSPIEL)).unwrap();
+                    test_game.announce_game(Some(EICHEL_SAUSPIEL)).unwrap();
+                    test_game.announce_game(Some(GRAS_SAUSPIEL)).unwrap();
+                } else {
+                    test_game.announce_game(None).unwrap();
+                }
             }
-        }
-        assert_eq!(
-            test_game.game_progress.state, 4,
-            "Did not reach the expected game state 4. Instead it is {}.",
-            test_game.game_progress.state
-        );
+            if test_game.game_progress.state != 4 || test_game.teams.is_none() {
+                print!("Fail")
+            }
+            assert_eq!(
+                test_game.game_progress.state, 4,
+                "Did not reach the expected game state 4. Instead it is {}.",
+                test_game.game_progress.state
+            );
             assert!(test_game.teams.is_some(), "Teams have not been set.");
-        let members_first_team = hamming::weight(&[test_game.teams.unwrap()]);
-            assert!(members_first_team > 0 && members_first_team < 4, "Invalid number of players in team one: {}", members_first_team);
+            let members_first_team = hamming::weight(&[test_game.teams.unwrap()]);
+            assert!(
+                members_first_team > 0 && members_first_team < 4,
+                "Invalid number of players in team one: {}",
+                members_first_team
+            );
         }
     }
 }
