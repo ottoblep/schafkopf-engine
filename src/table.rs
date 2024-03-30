@@ -6,7 +6,6 @@ use crate::table::cards::*;
 use crate::table::rulesets::*;
 use crate::table::state::*;
 
-use rand;
 use rand::seq::SliceRandom;
 
 use std::collections::*;
@@ -262,6 +261,7 @@ impl Game {
 mod tests {
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     use super::*;
+    use rand;
 
     #[test]
     fn test_new_cards() {
@@ -349,7 +349,8 @@ mod tests {
 
     #[test]
     fn test_announce_phase() {
-        let mut test_game: Game = Game::new(0);
+        for i in 1..500 {
+            let mut test_game: Game = Game::new(rand::random::<u8>() % 4);
         for n in 1..5 {
             if test_game.announce_game(Some(SCHELLEN_SAUSPIEL)) {
             } else if test_game.announce_game(Some(EICHEL_SAUSPIEL)) {
@@ -363,8 +364,9 @@ mod tests {
             "Did not reach the expected game state 4. Instead it is {}.",
             test_game.game_progress.state
         );
-        assert!(test_game.teams.is_some());
+            assert!(test_game.teams.is_some(), "Teams have not been set.");
         let members_first_team = hamming::weight(&[test_game.teams.unwrap()]);
-        assert!(members_first_team > 0 && members_first_team < 4);
+            assert!(members_first_team > 0 && members_first_team < 4, "Invalid number of players in team one: {}", members_first_team);
+        }
     }
 }
