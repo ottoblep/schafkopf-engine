@@ -21,7 +21,7 @@ impl Ruleset {
         }
         // First color decides
         if !self.card_is_trump(card1) {
-            if (card1.color == first_card.color) != (card1.color == first_card.color) {
+            if (card1.color == first_card.color) != (card2.color == first_card.color) {
                 return card1.color == first_card.color;
             }
         }

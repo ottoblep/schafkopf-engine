@@ -2,22 +2,22 @@ use strum_macros::EnumIter;
 
 #[derive(Debug, Copy, Clone, EnumIter, PartialEq, Eq, Hash)]
 pub enum Colors {
-    Eichel,
-    Gras,
-    Herz,
     Schelln,
+    Herz,
+    Gras,
+    Eichel,
 }
 
 #[derive(Debug, Copy, Clone, EnumIter, PartialEq, Eq, Hash)]
 pub enum Symbols {
-    Ass,
-    Zehn,
-    Koenig,
-    Ober,
-    Unter,
-    Neun,
-    Acht,
     Sieben,
+    Acht,
+    Neun,
+    Koenig,
+    Zehn,
+    Ass,
+    Unter,
+    Ober,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
