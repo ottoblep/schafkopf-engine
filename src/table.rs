@@ -387,9 +387,6 @@ mod tests {
                     test_game.announce_game(None).unwrap();
                 }
             }
-            if test_game.game_progress.state != 4 || test_game.teams.is_none() {
-                print!("Fail")
-            }
             assert_eq!(
                 test_game.game_progress.state, 4,
                 "Did not reach the expected game state 4. Instead it is {}.",
